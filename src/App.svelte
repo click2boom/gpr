@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { fly } from "svelte/transition";
+  import { writable } from 'svelte/store';
+  import ProxyList from "./lib/ProxyList.svelte";
+  import ProjectList from "./lib/ProjectList.svelte";
+  import {defaultProjects,Proxies,defaultProxy,type Project} from './data'
   let tab = $state("");
   let proxy = $state("");
   let inputText = $state("");
-  import { fade, fly } from "svelte/transition";
-  import ProxyList from "./lib/ProxyList.svelte";
-  import ProjectList from "./lib/ProjectList.svelte";
   const download = (url: string) => {
     if (!isUrl(url)) return;
     console.log(`Current Proxy: ${proxy}`);
@@ -16,13 +18,59 @@
     console.log("输入非网址");
     return /^(https?:\/\/)[^\s/$.?#].[^\s]*$/i.test(text);
   };
+
+	const downloadLatestFile=(project:Project)=>download(getLatestUrl(project))
+	const getLatestUrl = (project: Project): string =>
+		`https://github.com/${project.name}/releases/latest/download/${project.file}`;
+
+  const parseUrl = (url: string): Project | null => {
+		const reg =
+			/^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/]+)\/(.+)$/;
+		const match = url.match(reg);
+		if (!match) return null;
+		return {
+			source:url,
+			name: `${match[1]}/${match[2]}`,
+			version: match[3],
+			file: match[4],
+		};
+	};
+	let projects:Project[] = $state(defaultProjects);
+	const projectsWritable = writable(defaultProjects, (set) => {
+		const str = localStorage.getItem('Projects');
+		if (!str) return;
+		set(JSON.parse(str));
+	});
+  const proxyWritable = writable(defaultProxy, (set)=>{
+    const str = localStorage.getItem('Proxy');
+    if (!str) return;
+    set(str)
+  })
+  proxyWritable.subscribe(p=>{
+    localStorage.setItem('Proxy',p)
+    proxy = p
+  })
+	projectsWritable.subscribe(p => {
+		localStorage.setItem('Projects', JSON.stringify(p));
+		projects = p
+    
+	});
+  const handleFormSubmit = (event: SubmitEvent) => {
+    event.preventDefault();
+    if (!isUrl(inputText)) return inputText='';
+    download(inputText);
+    const project = parseUrl(inputText);
+    if (!project) return inputText='';
+    projectsWritable.update(p => [...p, project]);
+    tab = 'Projects'
+  }
 </script>
 
 <main>
   <header>
-    <form>
+    <form onsubmit={handleFormSubmit}>
       <input type="text" bind:value={inputText} />
-      <button type="submit" onclick={() => download(inputText)}>下载</button>
+      <button type="submit" >下载</button>
     </form>
   </header>
   <tab>
@@ -34,13 +82,13 @@
     <label>
       <input type="radio" bind:group={tab} value="Proxies" name="tab" />
       代理
-    </label>``
+    </label>
     {#key tab}
       <section in:fly={{ y: -50, duration: 200 }}>
         {#if tab === "Projects"}
-          <ProjectList {proxy} {download} {isUrl} />
+          <ProjectList {downloadLatestFile} {projects} />
         {:else if tab === "Proxies"}
-          <ProxyList bind:proxy />
+          <ProxyList bind:proxy/>
         {/if}
       </section>
     {/key}
@@ -99,3 +147,4 @@
     gap: .5rem;
   }
 </style>
+g
