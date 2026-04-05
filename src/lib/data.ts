@@ -1,6 +1,6 @@
 import type { Project,Proxy,Context } from "./type"
 const InitProject:Project = {
-    author:'zen-browser',name:'desktop',file:'zen.installer.exe',version:'1.19.6b'
+    author:'zen-browser',name:'desktop',file:'zen.installer.exe',version:'latest'
 }
 
 const InitProxy:Proxy = {

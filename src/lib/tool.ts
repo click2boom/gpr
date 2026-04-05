@@ -19,7 +19,10 @@ const download = (url: string) => {
     console.log(`Downloading: ${url}`);
     window.open(url, '_blank', 'width=200,height=200,noopener,noreferrer');
 }
-const parseUrl=(project:Project):string=>`https://github.com/${project.author}/${project.name}/releases/latest/download/${project.file}`;
+const parseUrl=(project:Project,latest:boolean=true):string=>
+    latest?`https://github.com/${project.author}/${project.name}/releases/latest/download/${project.file}`:
+       `https://github.com/${project.author}/${project.name}/releases/download/${project.version}/${project.file}`
+    ;
 const parseProject = (url: string): Project => {
 
     const regex = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/releases\/(latest|download\/([^\/]+))\/download\/(.+)$/;
