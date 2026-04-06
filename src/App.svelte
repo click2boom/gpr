@@ -1,40 +1,32 @@
 <script lang="ts">
   import { setContext } from "./lib/context";
-  import type { Project, Proxy, Context } from "./lib/type";
-  import { InitProject, InitProxy } from "./lib/data";
+  import type { Project, Context } from "./lib/type";
 
   import {
     LocalStorageWritable,
-    parseProject,
     download,
-    parseUrl,
+    parseProject,isUrl
   } from "./lib/tool";
 
-  const proxies = LocalStorageWritable<Proxy[]>("Proxies", [
-    InitProxy,
-    {
-      name: "wget",
-      url: "https://wget.la/",
-    },
-  ]);
-  const project = LocalStorageWritable<Project>("Project", InitProject);
-  const projects = LocalStorageWritable<Project[]>("Projects", [InitProject]);
-  const proxy = LocalStorageWritable<Proxy>("Proxy", InitProxy);
+  const proxies = LocalStorageWritable<string[]>("Proxies", ['直连',"https://wget.la/"]);
+  const project = LocalStorageWritable<Project>("Project", Object());
+  const projects = LocalStorageWritable<Project[]>("Projects", []);
+  const proxy = LocalStorageWritable<string>("Proxy", '');
   let inputText = $state("");
   const context: Context = {
     project: $project,
     projects: $projects,
-    proxies: $proxies,
-    proxy: $proxy,
+    proxies: $proxies
   };
 
   setContext(context);
   const handleFormSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     try {
-      $project = parseProject(inputText);
-      const url = parseUrl($project);
-      download($proxy.url + url);
+      download($proxy + inputText);
+      if (!isUrl(inputText)) return
+      const url = inputText
+      $project = parseProject(url)
       $projects= [...$projects,$project]
     } catch {}
   };
@@ -43,7 +35,7 @@
 </script>
 
 <main>
-  <p><i>{$proxy.name}</i> {inputText}</p>
+  <p><i>{$proxy?.slice(8,-1)}</i> {inputText}</p>
   <form onsubmit={handleFormSubmit}>
     <input type="text" id="inputText" bind:value={inputText} />
     <button type="submit">提交</button>
@@ -54,12 +46,11 @@
         {#each $proxies as p}
           <li>
             <button class="proxy" onclick={() => ($proxy = p)}>
-              {#if p.url.length > 0}
-                <a href={p.url} target="_blank" rel="noopener noreferrer">
-                  {p.name}
+              {#if p!=='直连'}
+                <a href={p} target="_blank" rel="noopener noreferrer">
+                  {p.slice(8,-1)}
                 </a>
-              {:else}
-                {p.name}
+              {:else}  {p} 
               {/if}
             </button>
           </li>
@@ -70,12 +61,24 @@
       <ul>
         {#each $projects as p}
           <li>
-             <button class="project" onclick={() => {download($proxy.url+parseUrl(p))}}>
-                <a href={parseUrl(p)} target="_blank" rel="noopener noreferrer">{p.author}/{p.name}/{p.version}/{p.file}</a>
+             <button class="project" onclick={() => download($proxy+p.url)}>
+                <a href={p.url} target="_blank" rel="noopener noreferrer">
+                  {#if p.type==="Specific" }
+                    {p.author}/{p.name}/{p.version}/{p.file}
+                  {:else if p.type==="Latest"}
+                   {p.author}/{p.name}/{p.version}/{p.file}
+                  {:else if p.type==="Source"}
+                     {p.author}/{p.name}/{p.branch}.zip
+                  {:else}
+                    {p.url}
+                  {/if}
+                </a>
              </button>
-             <button class="del" onclick={()=>$projects=$projects.filter((e)=>e!==p)}>x</button>
+             <button class="del" onclick={()=>$projects=$projects.filter((e)=>e!==p)}>
+              <i style:font-size="smaller">{p.type}</i>
+              X</button>
           </li>
-        {/each}
+        {/each} 
       </ul>
     </project>
   </section>
@@ -91,7 +94,7 @@
     gap: 1rem;
   }
   button.proxy {
-    width: 3rem;
+    min-width: 100%;
   }
   form {
     display: flex;

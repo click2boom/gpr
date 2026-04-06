@@ -1,18 +1,23 @@
 
 interface Project {
-  author:string
-  name:string
-  file:string
+  url:string,
+  type:UrlType
+  author?:string
+  name?:string
+  file?:string
+  branch?:string
   version?:string
 }
-interface Proxy {
-  name?:string
-  url:string
-}
+
+
+type UrlType = 'Latest' | 'Specific' | 'Source' |'Unknown'
+
+
+
+
 interface Context {
   project:Project
-  proxy:Proxy
   projects:Project[]
-  proxies:Proxy[]
+  proxies:string[]
 }
-export type {Project,Proxy,Context}
+export type {Project,Context,UrlType}
